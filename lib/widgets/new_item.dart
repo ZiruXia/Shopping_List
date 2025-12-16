@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 
 class NewItem extends StatefulWidget{
   const NewItem({super.key});
+
   @override
   State<NewItem> createState(){
     return _NewItemState();
@@ -16,31 +17,54 @@ class NewItem extends StatefulWidget{
 
 class _NewItemState extends State<NewItem>{
   final _formKey = GlobalKey<FormState>();
+
   var _eneteredName = '';
   var _enteredQuantity = 1;
   var _selectedCategory = categories[Categories.vegetables]!;
+  var _isSending = false;
+
+  static const String firebaseUrl = 'https://shopping-list-29a1c-default-rtdb.europe-west1.firebasedatabase.app/';
 
   void _saveItem() async {
     if(_formKey.currentState!.validate())
     {
           _formKey.currentState!.save();
-          final url = Uri.https("shopping-list-29a1c-default-rtdb.europe-west1.firebasedatabase.app", 'shopping-list.json');
-          final response = await http.post(url,
-          headers: {'Content-Type':'application/json'},
-          body: json.encode({
-            'name': _eneteredName,
-            'quantity': _enteredQuantity, 
-            'category': _selectedCategory,
-          }),
-          );
-          print(response.body);
-          print(response.statusCode);
-          if(!context.mounted){
-            return;
-          }
-          Navigator.of(context).pop();
+
+           setState(() {
+      _isSending = true;
+    });
+    
+    final url = Uri.https("shopping-list-29a1c-default-rtdb.europe-west1.firebasedatabase.app", 'shopping-list.json');
+    
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'name': _eneteredName,
+          'quantity': _enteredQuantity,
+          'category': _selectedCategory.title, 
+        }),
+      );
+
+      final Map<String, dynamic> resData = json.decode(response.body);
+
+      if (!mounted) return;
+
+      Navigator.of(context).pop(
+        GroceryItem(
+          id: resData['name'],
+          name: _eneteredName,
+          quantity: _enteredQuantity,
+          category: _selectedCategory,
+        ),
+      );
+    // ignore: empty_catches
+    } catch (error) {
+      
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
